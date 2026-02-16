@@ -14,45 +14,65 @@ function loadPoll() {
       const container = document.getElementById("poll");
       container.innerHTML = "";
 
-      const alreadyVoted = localStorage.getItem(votedKey);
+      if (localStorage.getItem(votedKey)) {
+        container.innerHTML = "<h3>You have already voted.</h3>";
+        return;
+      }
 
       data.forEach((q, qi) => {
         container.innerHTML += `<div class="card"><h3>${q.question}</h3>`;
 
         q.options.forEach(opt => {
           container.innerHTML += `
-            <div class="option ${alreadyVoted ? "disabled" : ""}"
-                 onclick="vote(${opt.id})">
-              <span>${opt.text}</span>
-              <span class="count">${opt.votes}</span>
-            </div>
+            <label class="option">
+              <input type="radio" name="q${qi}" value="${opt.id}">
+              ${opt.text} (Votes: ${opt.votes})
+            </label>
           `;
         });
 
         container.innerHTML += `</div>`;
       });
 
-      if (alreadyVoted) {
-        container.innerHTML += `
-          <p class="info">You have already voted.</p>
-        `;
-      }
+      container.innerHTML += `
+        <button onclick="submitVote()">Submit Vote</button>
+      `;
     });
 }
 
-/* Vote */
-function vote(optionId) {
-  if (localStorage.getItem(votedKey)) {
-    alert("You already voted!");
-    return;
-  }
 
-  fetch("/vote", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ optionId, pollId })
-  }).then(() => {
+/* Submit Vote */
+function submitVote() {
+  const questions = document.querySelectorAll(".card");
+
+  let selectedOptions = [];
+
+  questions.forEach((q, index) => {
+    const selected = document.querySelector(`input[name="q${index}"]:checked`);
+
+    if (!selected) {
+      alert("Please answer all questions");
+      selectedOptions = null;
+      return;
+    }
+
+    selectedOptions.push(selected.value);
+  });
+
+  if (!selectedOptions) return;
+
+  // Send votes for all questions
+  Promise.all(
+    selectedOptions.map(optionId =>
+      fetch("/vote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ optionId, pollId })
+      })
+    )
+  ).then(() => {
     localStorage.setItem(votedKey, true);
+    alert("Vote submitted successfully!");
     loadPoll();
   });
 }

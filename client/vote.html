@@ -5,9 +5,16 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="container" id="poll"></div>
+
+<div class="container">
+  <h2>Vote for all questions</h2>
+  <div id="poll"></div>
+  <button id="submitBtn" onclick="submitVotes()">Submit Vote</button>
+  <p id="msg" class="info"></p>
+</div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="vote.js"></script>
+
 </body>
 </html>

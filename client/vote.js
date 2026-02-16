@@ -5,8 +5,8 @@ const socket = io();
 socket.emit("join", pollId);
 
 const votedKey = "voted_" + pollId;
+let selectedOptions = {}; // store answers
 
-/* Load Poll */
 function loadPoll() {
   fetch(`/poll/${pollId}`)
     .then(res => res.json())
@@ -15,8 +15,8 @@ function loadPoll() {
       container.innerHTML = "";
 
       if (localStorage.getItem(votedKey)) {
-        container.innerHTML = "<h3>You have already voted.</h3>";
-        return;
+        document.getElementById("msg").innerText = "You already voted.";
+        document.getElementById("submitBtn").style.display = "none";
       }
 
       data.forEach((q, qi) => {
@@ -24,57 +24,54 @@ function loadPoll() {
 
         q.options.forEach(opt => {
           container.innerHTML += `
-            <label class="option">
-              <input type="radio" name="q${qi}" value="${opt.id}">
-              ${opt.text} (Votes: ${opt.votes})
-            </label>
+            <div class="option" onclick="selectOption(${qi}, ${opt.id}, this)">
+              ${opt.text} - Votes: ${opt.votes}
+            </div>
           `;
         });
 
         container.innerHTML += `</div>`;
       });
-
-      container.innerHTML += `
-        <button onclick="submitVote()">Submit Vote</button>
-      `;
     });
 }
 
+/* Select option (one per question) */
+function selectOption(questionIndex, optionId, element) {
+  if (localStorage.getItem(votedKey)) return;
 
-/* Submit Vote */
-function submitVote() {
-  const questions = document.querySelectorAll(".card");
-
-  let selectedOptions = [];
-
-  questions.forEach((q, index) => {
-    const selected = document.querySelector(`input[name="q${index}"]:checked`);
-
-    if (!selected) {
-      alert("Please answer all questions");
-      selectedOptions = null;
-      return;
-    }
-
-    selectedOptions.push(selected.value);
+  // Remove highlight from same question
+  const card = element.parentElement;
+  card.querySelectorAll(".option").forEach(opt => {
+    opt.style.background = "white";
   });
 
-  if (!selectedOptions) return;
+  element.style.background = "#cce5ff";
+  selectedOptions[questionIndex] = optionId;
+}
 
-  // Send votes for all questions
-  Promise.all(
-    selectedOptions.map(optionId =>
-      fetch("/vote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ optionId, pollId })
-      })
-    )
-  ).then(() => {
-    localStorage.setItem(votedKey, true);
-    alert("Vote submitted successfully!");
-    loadPoll();
+/* Submit votes */
+function submitVotes() {
+  if (localStorage.getItem(votedKey)) return;
+
+  const totalQuestions = document.querySelectorAll(".card").length;
+
+  if (Object.keys(selectedOptions).length !== totalQuestions) {
+    alert("Please answer all questions!");
+    return;
+  }
+
+  // Send vote for each selected option
+  Object.values(selectedOptions).forEach(optionId => {
+    fetch("/vote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ optionId, pollId })
+    });
   });
+
+  localStorage.setItem(votedKey, true);
+  document.getElementById("msg").innerText = "Vote submitted successfully!";
+  document.getElementById("submitBtn").style.display = "none";
 }
 
 socket.on("update", loadPoll);

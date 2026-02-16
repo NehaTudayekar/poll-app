@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Poll Created</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+<h2>Share this link</h2>
+<p id="link"></p>
+</div>
+
+<script>
+document.getElementById("link").innerText = localStorage.getItem("link");
+</script>
+</body>
+</html>

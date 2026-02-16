@@ -3,4 +3,3 @@ server/node_modules
 polls.db
 server/polls.db
 .env
-.DS_Store
